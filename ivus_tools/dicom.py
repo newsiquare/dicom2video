@@ -38,6 +38,9 @@ def iter_frames(dataset: pydicom.Dataset) -> Iterator[np.ndarray]:
     if pixel_array.ndim == 2:
         yield normalize_frame(pixel_array)
         return
+    if pixel_array.ndim == 3 and getattr(dataset, "SamplesPerPixel", 1) > 1:
+        yield normalize_frame(pixel_array)
+        return
 
     for frame in pixel_array:
         yield normalize_frame(frame)
