@@ -30,9 +30,18 @@ MP4 metadata embedding uses `ffmpeg` when available. If `ffmpeg` is missing, vid
 
 ```bash
 python dicom_to_mp4.py \
-  -i study.dcm \
-  -o study.mp4
+  -i study.dcm
 ```
+
+By default, MP4 outputs are written under `outputs/mp4/` using the input filename stem:
+
+```text
+outputs/mp4/study.mp4
+outputs/mp4/study.metadata.json
+outputs/mp4/study.conversion-report.json
+```
+
+Specify `-o/--output` when you want an explicit output path:
 
 Useful options:
 

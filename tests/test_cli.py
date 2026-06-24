@@ -44,3 +44,30 @@ def test_extract_metadata_cli_prints_json(make_test_dicom) -> None:
     assert metadata["NumberOfFrames"] == 2
     assert metadata["ResolvedFrameRate"] == 20.0
     assert metadata["StudyTime"] == "101112"
+
+
+def test_dicom_to_mp4_cli_defaults_to_outputs_mp4_directory(
+    tmp_path, monkeypatch, make_test_dicom
+) -> None:
+    dicom_path = make_test_dicom(
+        np.zeros((2, 8, 8), dtype=np.uint8),
+        filename="PDSTXFUV",
+        FrameTime=50,
+    )
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+
+    result = runner.invoke(
+        dicom_to_mp4_cli,
+        [
+            "-i",
+            str(dicom_path),
+            "--no-progress",
+            "--no-embed-metadata",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert (tmp_path / "outputs" / "mp4" / "PDSTXFUV.mp4").exists()
+    assert (tmp_path / "outputs" / "mp4" / "PDSTXFUV.metadata.json").exists()
+    assert (tmp_path / "outputs" / "mp4" / "PDSTXFUV.conversion-report.json").exists()

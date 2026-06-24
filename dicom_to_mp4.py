@@ -13,7 +13,12 @@ from ivus_tools.conversion import convert_dicom_to_mp4
     "-i", "--input", "input_path", required=True, type=click.Path(path_type=Path)
 )
 @click.option(
-    "-o", "--output", "output_path", required=True, type=click.Path(path_type=Path)
+    "-o",
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Output MP4 path. Defaults to outputs/mp4/<input_stem>.mp4.",
 )
 @click.option(
     "--fps", type=float, default=None, help="Override DICOM-derived frame rate."
@@ -30,7 +35,7 @@ from ivus_tools.conversion import convert_dicom_to_mp4
 )
 def cli(
     input_path: Path,
-    output_path: Path,
+    output_path: Path | None,
     fps: float | None,
     codec: str,
     no_progress: bool,
@@ -39,10 +44,13 @@ def cli(
     report_path: Path | None,
     no_report: bool,
 ) -> None:
+    resolved_output_path = (
+        output_path or Path("outputs") / "mp4" / f"{input_path.stem}.mp4"
+    )
     try:
         report = convert_dicom_to_mp4(
             input_path,
-            output_path,
+            resolved_output_path,
             fps=fps,
             codec=codec,
             show_progress=not no_progress,

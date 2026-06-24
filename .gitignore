@@ -8,3 +8,4 @@ __pycache__/
 *.metadata.json
 *.conversion-report.json
 frames/
+outputs/
