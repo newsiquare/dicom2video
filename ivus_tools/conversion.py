@@ -85,7 +85,7 @@ def convert_dicom_to_mp4(
     input_path: PathLike,
     output_path: PathLike,
     fps: Optional[float] = None,
-    codec: str = "mp4v",
+    codec: str = "libx264",
     show_progress: bool = True,
     write_sidecar: bool = True,
     embed_metadata: bool = True,

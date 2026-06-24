@@ -24,7 +24,12 @@ from ivus_tools.conversion import convert_dicom_to_mp4
 @click.option(
     "--fps", type=float, default=None, help="Override DICOM-derived frame rate."
 )
-@click.option("--codec", default="mp4v", show_default=True, help="OpenCV fourcc codec.")
+@click.option(
+    "--codec",
+    default="libx264",
+    show_default=True,
+    help="MP4 video codec. The default uses ffmpeg libx264.",
+)
 @click.option("--no-progress", is_flag=True, help="Disable progress bar output.")
 @click.option(
     "--no-sidecar", is_flag=True, help="Disable sidecar metadata JSON output."

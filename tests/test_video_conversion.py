@@ -13,6 +13,67 @@ from ivus_tools.conversion import convert_dicom_to_mp4, convert_png_to_mp4
 from ivus_tools.video import embed_mp4_metadata, write_mp4
 
 
+def test_write_mp4_with_libx264_uses_aligned_ffmpeg_command(
+    tmp_path, monkeypatch
+) -> None:
+    command_calls = []
+    written_chunks = []
+
+    class FakeStdin:
+        def write(self, chunk: bytes) -> None:
+            written_chunks.append(chunk)
+
+        def close(self) -> None:
+            pass
+
+    class FakeProcess:
+        def __init__(self, command, stdin, stderr):
+            command_calls.append(command)
+            self.stdin = FakeStdin()
+            self.returncode = 0
+
+        def wait(self) -> int:
+            return self.returncode
+
+    monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/ffmpeg")
+    monkeypatch.setattr(subprocess, "Popen", FakeProcess)
+    output_path = tmp_path / "video.mp4"
+
+    write_mp4(
+        [np.zeros((8, 10), dtype=np.uint8), np.full((8, 10), 255, dtype=np.uint8)],
+        output_path,
+        fps=20.0,
+        codec="libx264",
+    )
+
+    command = command_calls[0]
+    assert command == [
+        "/usr/bin/ffmpeg",
+        "-y",
+        "-f",
+        "rawvideo",
+        "-vcodec",
+        "rawvideo",
+        "-pix_fmt",
+        "bgr24",
+        "-s",
+        "10x8",
+        "-r",
+        "20.0",
+        "-i",
+        "-",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-movflags",
+        "+faststart",
+        "-an",
+        str(output_path),
+    ]
+    assert len(written_chunks) == 2
+
+
 def test_convert_dicom_to_mp4_writes_video_sidecar_and_report(
     tmp_path, make_test_dicom
 ) -> None:

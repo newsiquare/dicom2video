@@ -52,7 +52,7 @@ def batch_convert_dicom_to_mp4(
     input_dir: PathLike,
     output_dir: PathLike,
     fps: Optional[float] = None,
-    codec: str = "mp4v",
+    codec: str = "libx264",
     recursive: bool = False,
     show_progress: bool = True,
     write_sidecar: bool = True,

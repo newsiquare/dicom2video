@@ -35,6 +35,10 @@ def write_mp4(
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     first_frame = _as_bgr(frames[0])
+    if codec == "libx264":
+        _write_mp4_with_ffmpeg(frames, output, fps, first_frame)
+        return
+
     height, width = first_frame.shape[:2]
     writer = cv2.VideoWriter(
         str(output),
@@ -51,6 +55,57 @@ def write_mp4(
             writer.write(_as_bgr(frame))
     finally:
         writer.release()
+
+
+def _write_mp4_with_ffmpeg(
+    frames: list[np.ndarray], output_path: Path, fps: float, first_frame: np.ndarray
+) -> None:
+    ffmpeg = shutil.which("ffmpeg")
+    if ffmpeg is None:
+        raise RuntimeError("ffmpeg is required for libx264 MP4 writing.")
+
+    height, width = first_frame.shape[:2]
+    command = [
+        ffmpeg,
+        "-y",
+        "-f",
+        "rawvideo",
+        "-vcodec",
+        "rawvideo",
+        "-pix_fmt",
+        "bgr24",
+        "-s",
+        f"{width}x{height}",
+        "-r",
+        str(float(fps)),
+        "-i",
+        "-",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-movflags",
+        "+faststart",
+        "-an",
+        str(output_path),
+    ]
+    process = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+    if process.stdin is None:
+        raise RuntimeError("Could not open ffmpeg stdin for MP4 writing.")
+
+    try:
+        process.stdin.write(first_frame.tobytes())
+        for frame in frames[1:]:
+            process.stdin.write(_as_bgr(frame).tobytes())
+    finally:
+        process.stdin.close()
+
+    return_code = process.wait()
+    if return_code != 0:
+        stderr = ""
+        if process.stderr is not None:
+            stderr = process.stderr.read().decode(errors="replace").strip()
+        raise RuntimeError(stderr or "ffmpeg libx264 MP4 writing failed.")
 
 
 def embed_mp4_metadata(
@@ -76,7 +131,14 @@ def embed_mp4_metadata(
     with NamedTemporaryFile(suffix=source.suffix, delete=False) as temporary:
         temporary_path = Path(temporary.name)
 
-    command = [ffmpeg, "-y", "-i", str(source), "-movflags", "use_metadata_tags"]
+    command = [
+        ffmpeg,
+        "-y",
+        "-i",
+        str(source),
+        "-movflags",
+        "+faststart+use_metadata_tags",
+    ]
     for key, value in metadata.items():
         command.extend(["-metadata", f"{key}={value}"])
     command.extend(["-codec", "copy", str(temporary_path)])
