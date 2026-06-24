@@ -4,3 +4,7 @@ __pycache__/
 *.egg-info/
 *.dcm
 *.mp4
+*.png
+*.metadata.json
+*.conversion-report.json
+frames/
