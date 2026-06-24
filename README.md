@@ -153,6 +153,33 @@ Long-running commands show progress bars by default. Disable progress output wit
 
 Conversion commands save durable JSON reports by default. Use `--report PATH` to choose a report path or `--no-report` to disable report writing.
 
+## Example Synthetic DICOM
+
+The repository includes a synthetic, non-patient IVUS-like DICOM generator for smoke testing the workflow without private clinical data.
+
+```bash
+python examples/create_synthetic_dicom.py \
+  -o examples/synthetic_ivus.dcm \
+  --frames 24 \
+  --rows 128 \
+  --columns 128 \
+  --fps 20
+```
+
+Run the full local example workflow:
+
+```bash
+python dicom_to_png.py \
+  -i examples/synthetic_ivus.dcm \
+  -o examples/frames/
+
+python dicom_to_mp4.py \
+  -i examples/synthetic_ivus.dcm \
+  -o examples/synthetic_ivus.mp4
+```
+
+Generated `.dcm`, `.mp4`, and report artifacts are ignored by Git so example runs do not add large binary files to commits.
+
 ## MedSAM2 Workflow
 
 For MedSAM2, prefer PNG sequences over MP4:
