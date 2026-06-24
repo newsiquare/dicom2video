@@ -76,7 +76,7 @@ def embed_mp4_metadata(
     with NamedTemporaryFile(suffix=source.suffix, delete=False) as temporary:
         temporary_path = Path(temporary.name)
 
-    command = [ffmpeg, "-y", "-i", str(source)]
+    command = [ffmpeg, "-y", "-i", str(source), "-movflags", "use_metadata_tags"]
     for key, value in metadata.items():
         command.extend(["-metadata", f"{key}={value}"])
     command.extend(["-codec", "copy", str(temporary_path)])

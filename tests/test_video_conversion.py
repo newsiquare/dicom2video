@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import json
+import shutil
+import subprocess
 
 import numpy as np
+import pytest
 from PIL import Image
 
 from ivus_tools.batch import batch_convert_dicom_to_mp4
 from ivus_tools.conversion import convert_dicom_to_mp4, convert_png_to_mp4
+from ivus_tools.video import embed_mp4_metadata, write_mp4
 
 
 def test_convert_dicom_to_mp4_writes_video_sidecar_and_report(
@@ -99,3 +103,45 @@ def test_batch_convert_dicom_to_mp4_continues_and_reports_failures(
     assert (output_dir / "a.mp4").exists()
     assert (output_dir / "batch-conversion-report.json").exists()
     assert [entry["status"] for entry in result["files"]] == ["success", "failure"]
+
+
+def test_embed_mp4_metadata_writes_probeable_custom_tags(tmp_path) -> None:
+    if shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None:
+        pytest.skip("ffmpeg and ffprobe are required for MP4 metadata integration test")
+
+    output_path = tmp_path / "metadata.mp4"
+    frames = [np.full((8, 8), 90, dtype=np.uint8), np.full((8, 8), 140, dtype=np.uint8)]
+    write_mp4(frames, output_path, fps=10.0)
+
+    result = embed_mp4_metadata(
+        output_path,
+        {
+            "study_time": "120000",
+            "institution_name": "Synthetic IVUS Lab",
+            "manufacturer_model_name": "Synthetic-IVUS-Generator",
+        },
+    )
+
+    completed = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-show_entries",
+            "format_tags=study_time,institution_name,manufacturer_model_name",
+            "-of",
+            "json",
+            str(output_path),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    tags = json.loads(completed.stdout)["format"]["tags"]
+
+    assert result["status"] == "embedded"
+    assert tags == {
+        "study_time": "120000",
+        "institution_name": "Synthetic IVUS Lab",
+        "manufacturer_model_name": "Synthetic-IVUS-Generator",
+    }
