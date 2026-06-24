@@ -5,6 +5,8 @@ from pathlib import Path
 from time import perf_counter
 from typing import Any, Optional, Union
 
+import pydicom
+from pydicom.errors import InvalidDicomError
 from tqdm import tqdm
 
 from ivus_tools.conversion import convert_dicom_to_mp4
@@ -23,8 +25,27 @@ def _find_dicom_files(input_dir: Path, recursive: bool) -> list[Path]:
     return sorted(
         path
         for path in input_dir.glob(pattern)
-        if path.is_file() and path.suffix.lower() in {".dcm", ".dicom"}
+        if path.is_file() and _is_dicom_file(path)
     )
+
+
+def _is_dicom_file(path: Path) -> bool:
+    if path.suffix.lower() in {".dcm", ".dicom"}:
+        return True
+    if path.suffix:
+        return False
+    try:
+        pydicom.dcmread(path, stop_before_pixels=True)
+    except (InvalidDicomError, OSError):
+        return False
+    return True
+
+
+def _default_output_path(
+    source_dir: Path, destination_dir: Path, dicom_path: Path
+) -> Path:
+    relative_path = dicom_path.relative_to(source_dir)
+    return destination_dir / relative_path.with_suffix(".mp4")
 
 
 def batch_convert_dicom_to_mp4(
@@ -53,7 +74,7 @@ def batch_convert_dicom_to_mp4(
         dicom_files, desc="Converting DICOM files", disable=not show_progress
     )
     for dicom_path in iterator:
-        output_path = destination_dir / f"{dicom_path.stem}.mp4"
+        output_path = _default_output_path(source_dir, destination_dir, dicom_path)
         try:
             result = convert_dicom_to_mp4(
                 dicom_path,

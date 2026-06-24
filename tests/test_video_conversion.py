@@ -105,6 +105,31 @@ def test_batch_convert_dicom_to_mp4_continues_and_reports_failures(
     assert [entry["status"] for entry in result["files"]] == ["success", "failure"]
 
 
+def test_batch_convert_recursively_converts_extensionless_dicom_files(
+    tmp_path, make_test_dicom
+) -> None:
+    input_dir = tmp_path / "dicom"
+    nested_dir = input_dir / "run1"
+    output_dir = tmp_path / "mp4"
+    nested_dir.mkdir(parents=True)
+    dicom_path = make_test_dicom(
+        np.zeros((1, 8, 8), dtype=np.uint8), filename="PDSTXFUV", FrameTime=40
+    )
+    dicom_path.rename(nested_dir / "PDSTXFUV")
+
+    result = batch_convert_dicom_to_mp4(
+        input_dir,
+        output_dir,
+        recursive=True,
+        show_progress=False,
+        embed_metadata=False,
+    )
+
+    assert result["success_count"] == 1
+    assert result["failure_count"] == 0
+    assert (output_dir / "run1" / "PDSTXFUV.mp4").exists()
+
+
 def test_embed_mp4_metadata_writes_probeable_custom_tags(tmp_path) -> None:
     if shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None:
         pytest.skip("ffmpeg and ffprobe are required for MP4 metadata integration test")

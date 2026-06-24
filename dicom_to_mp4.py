@@ -4,6 +4,7 @@ from pathlib import Path
 
 import click
 
+from ivus_tools.batch import batch_convert_dicom_to_mp4
 from ivus_tools.cli import echo_summary
 from ivus_tools.conversion import convert_dicom_to_mp4
 
@@ -48,17 +49,31 @@ def cli(
         output_path or Path("outputs") / "mp4" / f"{input_path.stem}.mp4"
     )
     try:
-        report = convert_dicom_to_mp4(
-            input_path,
-            resolved_output_path,
-            fps=fps,
-            codec=codec,
-            show_progress=not no_progress,
-            write_sidecar=not no_sidecar,
-            embed_metadata=not no_embed_metadata,
-            report_path=report_path,
-            write_report=not no_report,
-        )
+        if input_path.is_dir():
+            report = batch_convert_dicom_to_mp4(
+                input_path,
+                output_path or Path("outputs") / "mp4",
+                fps=fps,
+                codec=codec,
+                recursive=True,
+                show_progress=not no_progress,
+                write_sidecar=not no_sidecar,
+                embed_metadata=not no_embed_metadata,
+                report_path=report_path,
+                write_report=not no_report,
+            )
+        else:
+            report = convert_dicom_to_mp4(
+                input_path,
+                resolved_output_path,
+                fps=fps,
+                codec=codec,
+                show_progress=not no_progress,
+                write_sidecar=not no_sidecar,
+                embed_metadata=not no_embed_metadata,
+                report_path=report_path,
+                write_report=not no_report,
+            )
     except (
         Exception
     ) as error:  # noqa: BLE001 - CLI converts exceptions to user messages.

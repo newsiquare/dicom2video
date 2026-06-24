@@ -71,3 +71,31 @@ def test_dicom_to_mp4_cli_defaults_to_outputs_mp4_directory(
     assert (tmp_path / "outputs" / "mp4" / "PDSTXFUV.mp4").exists()
     assert (tmp_path / "outputs" / "mp4" / "PDSTXFUV.metadata.json").exists()
     assert (tmp_path / "outputs" / "mp4" / "PDSTXFUV.conversion-report.json").exists()
+
+
+def test_dicom_to_mp4_cli_accepts_input_directory_recursively(
+    tmp_path, monkeypatch, make_test_dicom
+) -> None:
+    input_dir = tmp_path / "dicom"
+    nested_dir = input_dir / "run1"
+    nested_dir.mkdir(parents=True)
+    dicom_path = make_test_dicom(
+        np.zeros((1, 8, 8), dtype=np.uint8), filename="PDSTXFUV", FrameTime=50
+    )
+    dicom_path.rename(nested_dir / "PDSTXFUV")
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+
+    result = runner.invoke(
+        dicom_to_mp4_cli,
+        [
+            "-i",
+            str(input_dir),
+            "--no-progress",
+            "--no-embed-metadata",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert (tmp_path / "outputs" / "mp4" / "run1" / "PDSTXFUV.mp4").exists()
+    assert (tmp_path / "outputs" / "mp4" / "batch-conversion-report.json").exists()
